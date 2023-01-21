@@ -3,6 +3,7 @@ lazy val root = (project in file("."))
     name := "tenzo-experiment",
     organization := "io.github.todokr",
     version := "2023.1.0",
+    scalaVersion := "2.13.10",
     scalacOptions ++= Seq(
       "-feature",
       "-deprecation",
@@ -13,7 +14,7 @@ lazy val root = (project in file("."))
       "-Ywarn-unused"
     ),
     libraryDependencies ++= Seq(
-      "com.lihaoyi" %% "fastparse" % "2.2.2",
+      "com.lihaoyi" %% "fastparse" % "2.3.3",
       "com.lihaoyi" %% "utest" % "0.8.1" % "test",
     ),
     testFrameworks += new TestFramework("utest.runner.Framework")
