@@ -24,20 +24,41 @@ object Main {
 //      |└──────────────┴───────────┴─────┴───────────────────┘
 //      |"""
     setup"""#tableName1
+           |┌──────────────┬───────────┬─────┬───────────────────┐
+           |│    alias     │ user_name │ age │    department     │
+           |└──────────────┴───────────┴─────┴───────────────────┘
            |# tableName2
-           |#  tableName3
-         """
+           |┌───────┬───────────────────────────┐
+           |│ alias │      department_name      │
+           |└───────┴───────────────────────────┘
+           |# tableName3
+           |┌───────┬───────────────────────────┐
+           |│ alias │      department_name      │
+           |└───────┴───────────────────────────┘
+           |# tableName4
+           |┌───────┬───────────────────────────┐
+           |│ alias │      department_name      │
+           |└───────┴───────────────────────────┘
+           |"""
     println("hello")
   }
 
   object ShitakuParser {
     import fastparse._, NoWhitespace._
 
-    def tableName[_: P] = P("#" ~ " ".rep ~ CharPred(!_.isWhitespace).rep.! ~ (End|"\n"))
-    def expr[_: P] = P(Start ~ tableName.rep)
-    //def upperLine[_: P] = P("┌" | "─" | "┬" | "┐")
-    //def delimiterLine[_: P] = P("├" | "─" | "┼" | "┤")
-    //def lowerLine[_: P] = P("└" | "─" | "┴" |"┘")
+
+
+    def tableName[_: P] = P("#" ~ WSs ~ NonEmptyStr.! ~ "\n")
+    def header[_: P]: P[Seq[String]] = P(("│" ~ WSs ~ NonEmptyStr.! ~ WSs).rep(1) ~ "│" ~ "\n")
+
+    def expr[_: P] = P((tableName ~ upperLine ~ header ~ lowerLine).rep)
+
+    def WSs[_: P] = P(" ".rep)
+
+    def NonEmptyStr[_: P] = P(CharPred(!_.isWhitespace).rep(1))
+    def upperLine[_: P] = P("┌" ~ ("─" | "┬").rep ~ "┐" ~ "\n")
+    // def delimiterLine[_: P] = P("├" | "─" | "┼" | "┤")
+    def lowerLine[_: P] = P("└" ~ ("─" | "┴").rep ~ "┘" ~ ("\n" | ""))
 
     def parseDsl(raw: String): Seq[FocalTable] = {
       println(parse(raw, expr(_)).get)
