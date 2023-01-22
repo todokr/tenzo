@@ -6,7 +6,7 @@ object Main {
   implicit class ShitakuInterpolation(val sc: StringContext) extends AnyVal {
 
     def setup(@unused args: Any*): Seq[FocalTable] = {
-      val input = sc.parts.map(_.stripMargin.linesIterator.filterNot(_.isBlank).mkString("\n")).mkString
+      val input = sc.parts.map(_.stripMargin.linesIterator.map(_.trim).filterNot(_.isBlank).mkString("\n")).mkString
       ShitakuParser.parseDsl(input)
     }
   }
@@ -29,23 +29,18 @@ object Main {
       |│ sales_parson │ Urita     │  27 │ department(sales) │
       |└──────────────┴───────────┴─────┴───────────────────┘
       |"""*/
-    val result = setup"""
-           |# departments
-           |┌───────┬───────────────────────────┐
-           |│ alias │      department_name      │
-           |├───────┼───────────────────────────┤
-           |│ hr    │ Human Resource Department │
-           |│ sales │ Sales Department          │
-           |└───────┴───────────────────────────┘
+    val result =
+      setup""" # departments
+           |  ┌───────┬───────────────────────────┐
+           |  │ alias │      department_name      │
+           |  └───────┴───────────────────────────┘
            |
            |# users
            |┌──────────────┬───────────┬─────┬───────────────────┐
            |│    alias     │ user_name │ age │    department     │
-           |├──────────────┼───────────┼─────┼───────────────────┤
-           |│ hr_person    │ Jinnai    │  31 │ department(hr)    │
-           |│ sales_parson │ Urita     │  27 │ department(sales) │
            |└──────────────┴───────────┴─────┴───────────────────┘
            |"""
+
     result.foreach { t =>
       println(s"""${t.tableName}
                  |-----------------------------""".stripMargin)
@@ -58,13 +53,12 @@ object Main {
   trait Parsing {
     import fastparse._, NoWhitespace._
 
-    def UpperLine[_: P]     = P("┌" ~ ("─" | "┬").rep ~ "┐" ~ Newline)
-    def DelimiterLine[_: P] = P("├" ~ ("─" | "┼").rep ~ "┤" ~ Newline)
-    def LowerLine[_: P]     = P("└" ~ ("─" | "┴").rep ~ "┘" ~ (Newline | ""))
-    def WSs[_: P]           = P(" ".rep)
-    def AlNum[_: P]         = P((Number | Alpha).rep(1))
-    def Number[_: P]        = P(CharIn("0-9").rep(1))
-    def Alpha[_: P]         = P(CharIn("A-z").rep(1))
+
+    def WSs[_: P]    = P(" ".rep)
+    def Term[_: P]   = P(AlNum ~ (AlNum | " ").rep)
+    def AlNum[_: P]  = P((Number | Alpha).rep(1))
+    def Number[_: P] = P(CharIn("0-9").rep(1))
+    def Alpha[_: P]  = P(CharIn("A-z").rep(1))
 
     val Newline = "\n"
   }
@@ -72,21 +66,33 @@ object Main {
   object ShitakuParser extends Parsing {
     import fastparse._, NoWhitespace._
 
-    def tableName[_: P] = P("#" ~ WSs ~ AlNum.rep.! ~ Newline)
-    def header[_: P]    = P(("│" ~ WSs ~ AlNum.rep.! ~ WSs).rep(1) ~ "│" ~ Newline)
-    def content[_: P]   = P(("│" ~ WSs ~ (AlNum | " ").rep.! ~ WSs).rep(1) ~ "│" ~ Newline)
-    def focalTable[_: P] = P(tableName ~ UpperLine ~ header ~ DelimiterLine ~ content.rep ~ LowerLine).map {
-      case (tableName, headers, contents) =>
-        val rows = contents.map { values =>
-          Row(headers.zip(values).map { case (header, value) => Column(header, SpecifiedValue(value)) })
-        }
-        FocalTable(tableName, rows)
+    def parseDsl(raw: String): Seq[FocalTable] = {
+      println(raw)
+      parse(raw, DslExpr(_)) match {
+        case Parsed.Success(value, _) => value
+        case e: Parsed.Failure        => throw new Exception(e.toString())
+      }
     }
 
-    def expr[_: P] = P(focalTable.rep)
+    def DslExpr[_: P]: P[Seq[FocalTable]] = P(FocalTableExpr.rep)
 
-    def parseDsl(raw: String): Seq[FocalTable] =
-      parse(raw, expr(_)).get.value
+    def FocalTableExpr[_: P] = P(TableName ~ UpperLine ~ HeaderLine ~ DelimiterLine  ~ LowerLine).map {
+      case (tableName, headers) =>
+//        val rows = contents.map { values =>
+//          val cols = headers.zip(values).map { case (header, value) => Column(header, SpecifiedValue(value)) }
+//          Row(cols)
+//        }
+        val cols = headers.map(h => Column(h, SpecifiedValue("")))
+        FocalTable(tableName, Seq(Row(cols)))
+    }
+
+    def TableName[_: P]: P[String]        = P("#" ~ WSs ~ Term.! ~ Newline)
+    def HeaderLine[_: P]: P[Seq[String]]  = P(("│" ~ WSs ~ AlNum.rep.! ~ WSs).rep(1) ~ "│" ~ Newline)
+    // def ContentLine[_: P]: P[Seq[String]] = P(("│" ~ WSs ~ AlNum.rep.! ~ WSs).rep(1) ~ "│" ~ Newline)
+
+    def UpperLine[_: P]: P[Unit]     = P("┌" ~ ("─" | "┬").rep ~ "┐" ~ Newline)
+    def DelimiterLine[_: P]: P[Unit] = P("├" ~ ("─" | "┼").rep ~ "┤" ~ Newline)
+    def LowerLine[_: P]: P[Unit]     = P("└" ~ ("─" | "┴").rep ~ "┘" ~ (Newline | ""))
 
   }
   case class FocalTable(
