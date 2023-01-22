@@ -31,12 +31,12 @@ object Main {
       |"""*/
     val result = setup"""
            |# departments
-           |┌───────┬─────────────────────────┐
-           |│ alias │    department_name      │
-           |├───────┼─────────────────────────┤
-           |│ hr    │ HumanResourceDepartment │
-           |│ sales │ SalesDepartment         │
-           |└───────┴─────────────────────────┘
+           |┌───────┬───────────────────────────┐
+           |│ alias │      department_name      │
+           |├───────┼───────────────────────────┤
+           |│ hr    │ Human Resource Department │
+           |│ sales │ Sales Department          │
+           |└───────┴───────────────────────────┘
            |
            |# users
            |┌──────────────┬───────────┬─────┬───────────────────┐
@@ -47,21 +47,38 @@ object Main {
            |└──────────────┴───────────┴─────┴───────────────────┘
            |"""
     result.foreach { t =>
-      println(s"${t.tableName} ---------------")
-      t.rows.foreach(r => println(r.columns.map(c => s"${c.name}:${c.value}")))
+      println(s"""${t.tableName}
+                 |-----------------------------""".stripMargin)
+      t.rows.foreach(row => println(row.columns.map(c => s"${c.name}:${c.value}").mkString(", ")))
+      println("--------------------------")
+      println()
     }
   }
 
-  object ShitakuParser {
+  trait Parsing {
     import fastparse._, NoWhitespace._
 
-    def tableName[_: P] = P("#" ~ WSs ~ NonEmptyStr.! ~ Newline)
-    def header[_: P]    = P(("│" ~ WSs ~ NonEmptyStr.! ~ WSs).rep(1) ~ "│" ~ Newline)
-    def content[_: P]   = P(("│" ~ WSs ~ NonEmptyStr.! ~ WSs).rep(1) ~ "│" ~ Newline)
-    def focalTable[_: P] = P(tableName ~ upperLine ~ header ~ delimiterLine ~ content.rep ~ lowerLine).map {
+    def UpperLine[_: P]     = P("┌" ~ ("─" | "┬").rep ~ "┐" ~ Newline)
+    def DelimiterLine[_: P] = P("├" ~ ("─" | "┼").rep ~ "┤" ~ Newline)
+    def LowerLine[_: P]     = P("└" ~ ("─" | "┴").rep ~ "┘" ~ (Newline | ""))
+    def WSs[_: P]           = P(" ".rep)
+    def AlNum[_: P]         = P((Number | Alpha).rep(1))
+    def Number[_: P]        = P(CharIn("0-9").rep(1))
+    def Alpha[_: P]         = P(CharIn("A-z").rep(1))
+
+    val Newline = "\n"
+  }
+
+  object ShitakuParser extends Parsing {
+    import fastparse._, NoWhitespace._
+
+    def tableName[_: P] = P("#" ~ WSs ~ AlNum.rep.! ~ Newline)
+    def header[_: P]    = P(("│" ~ WSs ~ AlNum.rep.! ~ WSs).rep(1) ~ "│" ~ Newline)
+    def content[_: P]   = P(("│" ~ WSs ~ (AlNum | " ").rep.! ~ WSs).rep(1) ~ "│" ~ Newline)
+    def focalTable[_: P] = P(tableName ~ UpperLine ~ header ~ DelimiterLine ~ content.rep ~ LowerLine).map {
       case (tableName, headers, contents) =>
         val rows = contents.map { values =>
-          Row(headers.zip(values).map { case (header, value) => Column(header, SpecifiedValue(value))})
+          Row(headers.zip(values).map { case (header, value) => Column(header, SpecifiedValue(value)) })
         }
         FocalTable(tableName, rows)
     }
@@ -70,15 +87,6 @@ object Main {
 
     def parseDsl(raw: String): Seq[FocalTable] =
       parse(raw, expr(_)).get.value
-
-    def Number[_: P] = P(CharIn("0-9").rep(1))
-    def Alpha[_: P] = P(CharIn("a-Z").rep(1))
-    def NonEmptyStr[_: P]   = P(CharPred(!_.isWhitespace).rep(1))
-    def upperLine[_: P]     = P("┌" ~ ("─" | "┬").rep ~ "┐" ~ Newline)
-    def delimiterLine[_: P] = P("├" ~ ("─" | "┼").rep ~ "┤" ~ Newline)
-    def lowerLine[_: P]     = P("└" ~ ("─" | "┴").rep ~ "┘" ~ (Newline | ""))
-    def WSs[_: P]           = P(" ".rep)
-    val Newline             = "\n"
 
   }
   case class FocalTable(
@@ -95,7 +103,9 @@ object Main {
 
   trait SpecifiedValue
   object SpecifiedValue {
-    case class Text(value: String) extends SpecifiedValue
+    case class Text(value: String) extends SpecifiedValue {
+      override def toString: String = value
+    }
 
     def apply(v: String): SpecifiedValue = Text(v)
   }

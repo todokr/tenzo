@@ -15,9 +15,8 @@ lazy val root = (project in file("."))
     ),
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "fastparse" % "2.3.3",
-      "com.lihaoyi" %% "utest" % "0.8.1" % "test",
+      "org.scalatest" %% "scalatest-freespec" % "3.2.15" % Test,
     ),
-    testFrameworks += new TestFramework("utest.runner.Framework")
   )
 
 description := ""
