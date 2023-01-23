@@ -49,6 +49,27 @@ class ParsingTest extends AnyFreeSpec {
       val result = parse(input, target.HeaderLine(_))
       assert(result.get.value === Seq("alias", "user_name", "age", "department"))
     }
+
+    "ContentLine" in {
+      val input =
+        """│  hr_person     │ Taro Yamada   │ 31 │    Human Resource     │
+          |""".stripMargin
+      val result = parse(input, target.ContentLine(_))
+      assert(result.get.value === Seq("hr_person", "Taro Yamada", "31", "Human Resource"))
+    }
+
+    "ContentLines" in {
+      val input =
+        """│ hr_person    │ Jinnai    │  31 │ department(hr)    │
+          |│ sales_parson │ Urita     │  27 │ department(sales) │
+          |""".stripMargin
+      val result = parse(input, target.ContentLines(_))
+      assert(result.get.value ===
+        Seq(
+          Seq("hr_person", "Jinnai", "31", "department(hr)"),
+          Seq("sales_parson", "Urita", "27", "department(sales)")
+      ))
+    }
   }
 
   "Parsing" - {

@@ -55,7 +55,7 @@ object Main {
 
 
     def WSs[_: P]    = P(" ".rep)
-    def Term[_: P]   = P(AlNum ~ (AlNum | " ").rep)
+    def Term[_: P]   = P(AlNum ~ (AlNum | " " | "(" | ")").rep)
     def AlNum[_: P]  = P((Number | Alpha).rep(1))
     def Number[_: P] = P(CharIn("0-9").rep(1))
     def Alpha[_: P]  = P(CharIn("A-z").rep(1))
@@ -88,7 +88,8 @@ object Main {
 
     def TableName[_: P]: P[String]        = P("#" ~ WSs ~ Term.! ~ Newline)
     def HeaderLine[_: P]: P[Seq[String]]  = P(("│" ~ WSs ~ Term.!).rep(1) ~ "│" ~ Newline).map(_.map(_.trim))
-    // def ContentLine[_: P]: P[Seq[String]] = P(("│" ~ WSs ~ AlNum.rep.! ~ WSs).rep(1) ~ "│" ~ Newline)
+    def ContentLines[_: P]: P[Seq[Seq[String]]] = P(ContentLine.rep(1))
+    def ContentLine[_: P]: P[Seq[String]] = P(("│" ~ WSs ~ Term.!).rep(1) ~ "│" ~ Newline).map(_.map(_.trim))
 
     def UpperLine[_: P]: P[Unit]     = P("┌" ~ ("─" | "┬").rep ~ "┐" ~ Newline)
     def DelimiterLine[_: P]: P[Unit] = P("├" ~ ("─" | "┼").rep ~ "┤" ~ Newline)
