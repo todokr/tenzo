@@ -87,7 +87,7 @@ object Main {
     }
 
     def TableName[_: P]: P[String]        = P("#" ~ WSs ~ Term.! ~ Newline)
-    def HeaderLine[_: P]: P[Seq[String]]  = P(("│" ~ WSs ~ AlNum.rep.! ~ WSs).rep(1) ~ "│" ~ Newline)
+    def HeaderLine[_: P]: P[Seq[String]]  = P(("│" ~ WSs ~ Term.!).rep(1) ~ "│" ~ Newline).map(_.map(_.trim))
     // def ContentLine[_: P]: P[Seq[String]] = P(("│" ~ WSs ~ AlNum.rep.! ~ WSs).rep(1) ~ "│" ~ Newline)
 
     def UpperLine[_: P]: P[Unit]     = P("┌" ~ ("─" | "┬").rep ~ "┐" ~ Newline)

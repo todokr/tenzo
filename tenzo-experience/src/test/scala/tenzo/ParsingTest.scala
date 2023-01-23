@@ -37,10 +37,17 @@ class ParsingTest extends AnyFreeSpec {
     "TableName" in {
       val input =
         """# the table name
-          |
           |""".stripMargin
       val result = parse(input, target.TableName(_))
       assert(result.get.value === "the table name")
+    }
+
+    "HeaderLine" in {
+      val input =
+        """│    alias     │ user_name │ age │    department     │
+          |""".stripMargin
+      val result = parse(input, target.HeaderLine(_))
+      assert(result.get.value === Seq("alias", "user_name", "age", "department"))
     }
   }
 
