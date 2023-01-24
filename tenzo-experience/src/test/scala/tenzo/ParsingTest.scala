@@ -1,11 +1,10 @@
 package tenzo
 
-import fastparse.P
 import org.scalatest.freespec.AnyFreeSpec
 import tenzo.Main.{Parsing, ShitakuParser}
 
 class ParsingTest extends AnyFreeSpec {
-  import fastparse.parse, fastparse.NoWhitespace._
+  import fastparse.parse
   private val target = new Parsing {}
 
   "ShitakuParser" - {
@@ -36,7 +35,7 @@ class ParsingTest extends AnyFreeSpec {
 
     "TableName" in {
       val input =
-        """# the table name
+        """ # the table name
           |""".stripMargin
       val result = parse(input, target.TableName(_))
       assert(result.get.value === "the table name")
