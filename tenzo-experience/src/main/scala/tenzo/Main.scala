@@ -76,14 +76,13 @@ object Main {
 
     def DslExpr[_: P]: P[Seq[FocalTable]] = P(FocalTableExpr.rep)
 
-    def FocalTableExpr[_: P] = P(TableName ~ UpperLine ~ HeaderLine ~ DelimiterLine  ~ LowerLine).map {
-      case (tableName, headers) =>
-//        val rows = contents.map { values =>
-//          val cols = headers.zip(values).map { case (header, value) => Column(header, SpecifiedValue(value)) }
-//          Row(cols)
-//        }
-        val cols = headers.map(h => Column(h, SpecifiedValue("")))
-        FocalTable(tableName, Seq(Row(cols)))
+    def FocalTableExpr[_: P] = P(TableName ~ UpperLine ~ HeaderLine ~ DelimiterLine ~ ContentLines ~ LowerLine).map {
+      case (tableName, headers, contents) =>
+        val rows = contents.map { values =>
+          val cols = headers.zip(values).map { case (header, value) => Column(header, SpecifiedValue(value)) }
+          Row(cols)
+        }
+        FocalTable(tableName, rows)
     }
 
     def TableName[_: P]: P[String]        = P(WSs ~ "#" ~ WSs ~ Term.! ~ Newline)
