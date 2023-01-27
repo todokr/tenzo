@@ -50,7 +50,7 @@ class ParsingTest extends AnyFreeSpec {
           |└───────┴───────────────────────────┘
           |# users
           |┌──────────────┬───────────┬─────┬───────────────────┐
-          |│    alias     │ user_name │ age │    department     │
+          |│    alias     │ user_name │ age │  department_id    │
           |├──────────────┼───────────┼─────┼───────────────────┤
           |│ hr_person    │ Jinnai    │  31 │ department(hr)    │
           |│ sales_parson │ Urita     │  27 │ department(sales) │
