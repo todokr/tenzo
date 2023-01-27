@@ -1,0 +1,3 @@
+package tenzo object JdbcConfig {
+
+}
