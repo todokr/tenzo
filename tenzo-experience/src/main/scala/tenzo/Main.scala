@@ -4,15 +4,17 @@ import scala.annotation.unused
 
 object Main {
   implicit class ShitakuInterpolation(val sc: StringContext) extends AnyVal {
+    import scala.util.chaining.scalaUtilChainingOps
+    import ShitakuParser.{normalize, parse}
 
     def setup(@unused args: Any*): Seq[FocalTable] = {
-      val input = sc.parts.map(_.stripMargin.linesIterator.map(_.trim).filterNot(_.isBlank).mkString("\n")).mkString
-      ShitakuParser.parseDsl(input)
+      val input = sc.parts.mkString
+      input.pipe(normalize).pipe(parse)
     }
   }
 
   def main(args: Array[String]): Unit = {
-    /*setup"""
+    val result = setup"""
       |# departments
       |┌───────┬───────────────────────────┐
       |│ alias │      department_name      │
@@ -28,18 +30,7 @@ object Main {
       |│ hr_person    │ Jinnai    │  31 │ department(hr)    │
       |│ sales_parson │ Urita     │  27 │ department(sales) │
       |└──────────────┴───────────┴─────┴───────────────────┘
-      |"""*/
-    val result =
-      setup""" # departments
-           |  ┌───────┬───────────────────────────┐
-           |  │ alias │      department_name      │
-           |  └───────┴───────────────────────────┘
-           |
-           |# users
-           |┌──────────────┬───────────┬─────┬───────────────────┐
-           |│    alias     │ user_name │ age │    department     │
-           |└──────────────┴───────────┴─────┴───────────────────┘
-           |"""
+      |"""
 
     result.foreach { t =>
       println(s"""${t.tableName}
@@ -53,22 +44,27 @@ object Main {
   trait Parsing {
     import fastparse._, NoWhitespace._
 
-
     def WSs[_: P]    = P(" ".rep)
     def Term[_: P]   = P(AlNum ~ (AlNum | " " | "(" | ")").rep)
     def AlNum[_: P]  = P((Number | Alpha).rep(1))
     def Number[_: P] = P(CharIn("0-9").rep(1))
     def Alpha[_: P]  = P(CharIn("A-z").rep(1))
-
-    val Newline = "\n"
   }
 
   object ShitakuParser extends Parsing {
-    import fastparse._, NoWhitespace._
+    private val Newline = "\n"
+    case class Dsl(value: String) extends AnyVal {
+      override def toString: String = value
+    }
 
-    def parseDsl(raw: String): Seq[FocalTable] = {
-      println(raw)
-      parse(raw, DslExpr(_)) match {
+    import fastparse.{parse => fParse, _}, NoWhitespace._
+
+    def normalize(raw: String): Dsl =
+      Dsl(raw.stripMargin.linesIterator.map(_.trim).filter(_.nonEmpty).mkString(Newline))
+
+
+    def parse(dsl: Dsl): Seq[FocalTable] = {
+      fParse(dsl.value, DslExpr(_)) match {
         case Parsed.Success(value, _) => value
         case e: Parsed.Failure        => throw new Exception(e.toString())
       }
