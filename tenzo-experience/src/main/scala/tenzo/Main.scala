@@ -1,5 +1,6 @@
 package tenzo
 
+import java.util.Properties
 import scala.annotation.unused
 
 object Main {
@@ -62,7 +63,6 @@ object Main {
     def normalize(raw: String): Dsl =
       Dsl(raw.stripMargin.linesIterator.map(_.trim).filter(_.nonEmpty).mkString(Newline))
 
-
     def parse(dsl: Dsl): Seq[FocalTable] = {
       fParse(dsl.value, DslExpr(_)) match {
         case Parsed.Success(value, _) => value
@@ -81,10 +81,10 @@ object Main {
         FocalTable(tableName, rows)
     }
 
-    def TableName[_: P]: P[String]        = P(WSs ~ "#" ~ WSs ~ Term.! ~ Newline)
-    def HeaderLine[_: P]: P[Seq[String]]  = P(("│" ~ WSs ~ Term.!).rep(1) ~ "│" ~ Newline).map(_.map(_.trim))
+    def TableName[_: P]: P[String]              = P(WSs ~ "#" ~ WSs ~ Term.! ~ Newline)
+    def HeaderLine[_: P]: P[Seq[String]]        = P(("│" ~ WSs ~ Term.!).rep(1) ~ "│" ~ Newline).map(_.map(_.trim))
     def ContentLines[_: P]: P[Seq[Seq[String]]] = P(ContentLine.rep(1))
-    def ContentLine[_: P]: P[Seq[String]] = P(("│" ~ WSs ~ Term.!).rep(1) ~ "│" ~ Newline).map(_.map(_.trim))
+    def ContentLine[_: P]: P[Seq[String]]       = P(("│" ~ WSs ~ Term.!).rep(1) ~ "│" ~ Newline).map(_.map(_.trim))
 
     def UpperLine[_: P]: P[Unit]     = P("┌" ~ ("─" | "┬").rep ~ "┐" ~ Newline)
     def DelimiterLine[_: P]: P[Unit] = P("├" ~ ("─" | "┼").rep ~ "┤" ~ Newline)
@@ -110,5 +110,41 @@ object Main {
     }
 
     def apply(v: String): SpecifiedValue = Text(v)
+  }
+}
+
+case class Association(
+  constraintName: String,
+  tableSchema: String,
+  fromTable: String,
+  fromColumn: String,
+  toTable: String,
+  toColumn: String
+)
+
+object JDBCTest {
+  val Sql =
+    """
+      |select
+      |    tc.constraint_name,
+      |    tc.table_schema,
+      |    ccu.table_name as to_table,
+      |    ccu.column_name as to_column,
+      |    kcu.table_name as from_table,
+      |    kcu.column_name as from_column
+      |from information_schema.table_constraints as tc
+      |inner join information_schema.constraint_column_usage as ccu on tc.constraint_name = ccu.constraint_name
+      |inner join information_schema.key_column_usage as kcu on tc.constraint_name = kcu.constraint_name
+      |where
+      |    tc.constraint_type = 'FOREIGN KEY'
+      |""".stripMargin
+
+  def main(args: Array[String]): Unit = {
+    val propFile = "shitaku.properties"
+    val reader   = scala.io.Source.fromResource(propFile).bufferedReader()
+    val p        = new Properties()
+    p.load(reader)
+    val conf = JdbcConfig.from(p)
+    println(conf)
   }
 }
