@@ -13,7 +13,7 @@ object ConfigLoader {
   private val DefaultPropFileName = "shitaku.properties"
 }
 
-object JdbcConfig {
+private[datastore] object JdbcConfig {
   def from(properties: Properties): JdbcConfig = {
     val driver   = properties.valueOf(DriverKey)
     val url      = properties.valueOf(UrlKey)

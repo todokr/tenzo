@@ -1,6 +1,6 @@
 package tenzo.dsl
 
-object Parser extends Parsing {
+private[dsl] object Parser extends Parsing {
   import fastparse.{parse => fParse, _}
   import NoWhitespace._
   import FocalTable._

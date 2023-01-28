@@ -1,6 +1,6 @@
 package tenzo.dsl
 
-trait Parsing {
+private[dsl] trait Parsing {
   import fastparse._
   import NoWhitespace._
 
