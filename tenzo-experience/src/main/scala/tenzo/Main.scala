@@ -1,126 +1,42 @@
 package tenzo
 
+import tenzo.datastore.JdbcConfig
+
+import java.sql.DriverManager
 import java.util.Properties
-import scala.annotation.unused
-
 object Main {
-  implicit class ShitakuInterpolation(val sc: StringContext) extends AnyVal {
-    import scala.util.chaining.scalaUtilChainingOps
-    import ShitakuParser.{normalize, parse}
-
-    def setup(@unused args: Any*): Seq[FocalTable] = {
-      val input = sc.parts.mkString
-      input.pipe(normalize).pipe(parse)
-    }
-  }
-
+  import tenzo.dsl.ops._
   def main(args: Array[String]): Unit = {
-    val result = setup"""
-      |# departments
-      |┌───────┬───────────────────────────┐
-      |│ alias │      department_name      │
-      |├───────┼───────────────────────────┤
-      |│ hr    │ Human Resource Department │
-      |│ sales │ Sales Department          │
-      |└───────┴───────────────────────────┘
-      |
-      |# users
-      |┌──────────────┬───────────┬─────┬───────────────────┐
-      |│    alias     │ user_name │ age │    department     │
-      |├──────────────┼───────────┼─────┼───────────────────┤
-      |│ hr_person    │ Jinnai    │  31 │ department(hr)    │
-      |│ sales_parson │ Urita     │  27 │ department(sales) │
-      |└──────────────┴───────────┴─────┴───────────────────┘
-      |"""
+    val result =
+      setup"""
+             |# departments
+             |┌───────┬───────────────────────────┐
+             |│ alias │      department_name      │
+             |├───────┼───────────────────────────┤
+             |│ hr    │ Human Resource Department │
+             |│ sales │ Sales Department          │
+             |└───────┴───────────────────────────┘
+             |
+             |# users
+             |┌──────────────┬───────────┬─────┬───────────────────┐
+             |│    alias     │ user_name │ age │    department     │
+             |├──────────────┼───────────┼─────┼───────────────────┤
+             |│ hr_person    │ Jinnai    │  31 │ department(hr)    │
+             |│ sales_parson │ Urita     │  27 │ department(sales) │
+             |└──────────────┴───────────┴─────┴───────────────────┘
+             |"""
 
     result.foreach { t =>
-      println(s"""${t.tableName}
-                 |-----------------------------""".stripMargin)
+      println(
+        s"""${t.tableName}
+           |-----------------------------""".stripMargin)
       t.rows.foreach(row => println(row.columns.map(c => s"${c.name}:${c.value}").mkString(", ")))
       println("--------------------------")
       println()
     }
   }
 
-  trait Parsing {
-    import fastparse._, NoWhitespace._
-
-    def WSs[_: P]    = P(" ".rep)
-    def Term[_: P]   = P(AlNum ~ (AlNum | " " | "(" | ")").rep)
-    def AlNum[_: P]  = P((Number | Alpha).rep(1))
-    def Number[_: P] = P(CharIn("0-9").rep(1))
-    def Alpha[_: P]  = P(CharIn("A-z").rep(1))
-  }
-
-  object ShitakuParser extends Parsing {
-    private val Newline = "\n"
-    case class Dsl(value: String) extends AnyVal {
-      override def toString: String = value
-    }
-
-    import fastparse.{parse => fParse, _}, NoWhitespace._
-
-    def normalize(raw: String): Dsl =
-      Dsl(raw.stripMargin.linesIterator.map(_.trim).filter(_.nonEmpty).mkString(Newline))
-
-    def parse(dsl: Dsl): Seq[FocalTable] = {
-      fParse(dsl.value, DslExpr(_)) match {
-        case Parsed.Success(value, _) => value
-        case e: Parsed.Failure        => throw new Exception(e.toString())
-      }
-    }
-
-    def DslExpr[_: P]: P[Seq[FocalTable]] = P(FocalTableExpr.rep)
-
-    def FocalTableExpr[_: P] = P(TableName ~ UpperLine ~ HeaderLine ~ DelimiterLine ~ ContentLines ~ LowerLine).map {
-      case (tableName, headers, contents) =>
-        val rows = contents.map { values =>
-          val cols = headers.zip(values).map { case (header, value) => Column(header, SpecifiedValue(value)) }
-          Row(cols)
-        }
-        FocalTable(tableName, rows)
-    }
-
-    def TableName[_: P]: P[String]              = P(WSs ~ "#" ~ WSs ~ Term.! ~ Newline)
-    def HeaderLine[_: P]: P[Seq[String]]        = P(("│" ~ WSs ~ Term.!).rep(1) ~ "│" ~ Newline).map(_.map(_.trim))
-    def ContentLines[_: P]: P[Seq[Seq[String]]] = P(ContentLine.rep(1))
-    def ContentLine[_: P]: P[Seq[String]]       = P(("│" ~ WSs ~ Term.!).rep(1) ~ "│" ~ Newline).map(_.map(_.trim))
-
-    def UpperLine[_: P]: P[Unit]     = P("┌" ~ ("─" | "┬").rep ~ "┐" ~ Newline)
-    def DelimiterLine[_: P]: P[Unit] = P("├" ~ ("─" | "┼").rep ~ "┤" ~ Newline)
-    def LowerLine[_: P]: P[Unit]     = P("└" ~ ("─" | "┴").rep ~ "┘" ~ (Newline | ""))
-
-  }
-  case class FocalTable(
-    tableName: String,
-    rows: Seq[Row]
-  )
-
-  case class Row(columns: Seq[Column])
-
-  case class Column(
-    name: String,
-    value: SpecifiedValue
-  )
-
-  trait SpecifiedValue
-  object SpecifiedValue {
-    case class Text(value: String) extends SpecifiedValue {
-      override def toString: String = value
-    }
-
-    def apply(v: String): SpecifiedValue = Text(v)
-  }
 }
-
-case class Association(
-  constraintName: String,
-  tableSchema: String,
-  fromTable: String,
-  fromColumn: String,
-  toTable: String,
-  toColumn: String
-)
 
 object JDBCTest {
   val Sql =
@@ -139,12 +55,41 @@ object JDBCTest {
       |    tc.constraint_type = 'FOREIGN KEY'
       |""".stripMargin
 
+
   def main(args: Array[String]): Unit = {
-    val propFile = "shitaku.properties"
+
     val reader   = scala.io.Source.fromResource(propFile).bufferedReader()
     val p        = new Properties()
     p.load(reader)
     val conf = JdbcConfig.from(p)
-    println(conf)
+    Class.forName(conf.driver)
+    val conn = DriverManager.getConnection(conf.url, conf.user, conf.password)
+    val st = conn.prepareStatement(Sql)
+    val rs = st.executeQuery()
+    val results = Iterator.continually(rs).takeWhile(_.next()).map { rs =>
+      Reference(
+        rs.getString("table_schema"),
+        rs.getString("constraint_name"),
+        rs.getString("to_table"),
+        rs.getString("to_column"),
+        rs.getString("from_table"),
+        rs.getString("from_column")
+      )
+    }
+
+    results.foreach(println)
   }
+}
+
+
+
+case class Reference(
+  tableSchema: String,
+  constraintName: String,
+  fromTable: String,
+  fromColumn: String,
+  toTable: String,
+  toColumn: String) {
+  override def toString: String =
+    s"""[$tableSchema] $toTable.$toColumn <-- $fromTable.$fromColumn ($constraintName)"""
 }

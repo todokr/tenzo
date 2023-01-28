@@ -1,6 +1,6 @@
 package tenzo.dsl
 
-object DslParser extends Parsing {
+object Parser extends Parsing {
   import fastparse.{parse => fParse, _}
   import NoWhitespace._
   import FocalTable._
@@ -39,7 +39,7 @@ object DslParser extends Parsing {
   private val Newline = "\n"
 
   final case class Dsl(value: String) extends AnyVal {
-    override def toString: String = valuetenzo.dsl
+    override def toString: String = value
   }
 }
 

@@ -2,7 +2,7 @@ package tenzo
 
 import fastparse.parseInputRaw
 import org.scalatest.freespec.AnyFreeSpec
-import tenzo.Main.{Parsing, ShitakuParser, SpecifiedValue}
+import tenzo.dsl.Main.{Parsing, ShitakuParser, SpecifiedValue}
 
 class ParsingTest extends AnyFreeSpec {
   import fastparse.parse
