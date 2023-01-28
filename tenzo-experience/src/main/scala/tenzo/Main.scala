@@ -1,6 +1,6 @@
 package tenzo
 
-import tenzo.datastore.JdbcConfig
+import tenzo.datastore.{ConfigLoader, JdbcConfig}
 
 import java.sql.DriverManager
 import java.util.Properties
@@ -58,10 +58,7 @@ object JDBCTest {
 
   def main(args: Array[String]): Unit = {
 
-    val reader   = scala.io.Source.fromResource(propFile).bufferedReader()
-    val p        = new Properties()
-    p.load(reader)
-    val conf = JdbcConfig.from(p)
+    val conf = ConfigLoader.load()
     Class.forName(conf.driver)
     val conn = DriverManager.getConnection(conf.url, conf.user, conf.password)
     val st = conn.prepareStatement(Sql)
