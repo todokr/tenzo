@@ -15,6 +15,7 @@ lazy val root = (project in file("."))
     ),
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "fastparse" % "2.3.3",
+      "org.postgresql" % "postgresql" % "42.5.1",
       "org.scalatest" %% "scalatest-freespec" % "3.2.15" % Test,
     ),
   )
