@@ -17,10 +17,10 @@ class MetadataLoader(conf: JdbcConfig) {
           Reference(
             rs.getString("table_schema"),
             rs.getString("constraint_name"),
+            rs.getString("from_table"),
+            rs.getString("from_column"),
             rs.getString("to_table"),
             rs.getString("to_column"),
-            rs.getString("from_table"),
-            rs.getString("from_column")
           )
         }
         .toSeq
