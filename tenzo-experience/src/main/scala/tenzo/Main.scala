@@ -43,6 +43,16 @@ object JDBCTest {
     val references = loader.loadReferences()
     references.foreach(println)
 
+    val from = references.find(_.fromTable == "target_users")
+    Iterator.tabulate()
+    val linear = Iterator
+      .iterate(from)(_.flatMap(r => references.find(_.fromTable == r.toTable)))
+      .takeWhile(x => x.nonEmpty && x.exists(r => r.fromTable != r.toTable))
+      .collect { case Some(x) => x }
+      .toSeq
+    val res = linear.head.fromTable +: linear.map(_.toTable)
+    println(res)
+
     val tables     = references.flatMap(r => Seq(r.toTable, r.fromTable)).distinct
     val structures = loader.loadTableStructure(tables)
     structures.foreach { structure =>
