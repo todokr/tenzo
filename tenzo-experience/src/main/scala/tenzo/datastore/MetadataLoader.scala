@@ -4,6 +4,7 @@ import java.sql.DriverManager
 import scala.util.Using
 
 class MetadataLoader(conf: JdbcConfig) {
+  Class.forName(conf.driver)
 
   def loadReferences(): Seq[Reference] =
     Using.resource(DriverManager.getConnection(conf.url, conf.user, conf.password)) { conn =>
@@ -27,7 +28,7 @@ class MetadataLoader(conf: JdbcConfig) {
 
   object ReferenceSql {
     val stmt: String =
-      """selectjdbc.drivers
+      """select
         |    tc.constraint_name,
         |    tc.table_schema,
         |    ccu.table_name as to_table,
