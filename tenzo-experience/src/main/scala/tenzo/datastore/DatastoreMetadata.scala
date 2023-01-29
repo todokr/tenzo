@@ -1,9 +1,5 @@
 package tenzo.datastore
 
-final case class DatastoreMetadata(
-  references: Seq[Reference]
-)
-
 final case class Reference(
   tableSchema: String,
   constraintName: String,
@@ -14,4 +10,18 @@ final case class Reference(
 ) {
   override def toString: String =
     s"""[$tableSchema] $toTable.$toColumn <-- $fromTable.$fromColumn ($constraintName)"""
+}
+
+final case class TableStructure(
+  tableSchema: String,
+  tableName: String,
+  columns: Seq[TableStructure.Column]
+)
+
+object TableStructure {
+  final case class Column(
+    name: String,
+    dataType: String,
+    nullable: Boolean
+  )
 }
