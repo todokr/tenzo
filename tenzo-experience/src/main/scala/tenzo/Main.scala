@@ -39,7 +39,20 @@ object JDBCTest {
 
   def main(args: Array[String]): Unit = {
     val conf = ConfigLoader.load()
-    val metadata = MetadataLoader.load(conf)
-    metadata.references.foreach(println)
+    val loader = new MetadataLoader(conf)
+
+    val references = loader.loadReferences()
+    references.foreach(println)
+
+    val tables = references.flatMap(r => Seq(r.toTable, r.fromTable)).distinct
+    val structures = loader.loadTableStructure(tables)
+    structures.foreach { structure =>
+      println("=" * 100)
+      println(s"${structure.tableSchema}.${structure.tableName}")
+      structure.columns.foreach { col =>
+        println(s"${col.name} ${col.dataType} nullable:${col.nullable}")
+      }
+      println()
+    }
   }
 }
