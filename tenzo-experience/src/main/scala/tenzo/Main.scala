@@ -24,9 +24,8 @@ object Main {
              |"""
 
     result.foreach { t =>
-      println(
-        s"""${t.tableName}
-           |-----------------------------""".stripMargin)
+      println(s"""${t.tableName}
+                 |-----------------------------""".stripMargin)
       t.rows.foreach(row => println(row.columns.map(c => s"${c.name}:${c.value}").mkString(", ")))
       println("--------------------------")
       println()
@@ -38,19 +37,19 @@ object Main {
 object JDBCTest {
 
   def main(args: Array[String]): Unit = {
-    val conf = ConfigLoader.load()
+    val conf   = ConfigLoader.load()
     val loader = new MetadataLoader(conf)
 
     val references = loader.loadReferences()
     references.foreach(println)
 
-    val tables = references.flatMap(r => Seq(r.toTable, r.fromTable)).distinct
+    val tables     = references.flatMap(r => Seq(r.toTable, r.fromTable)).distinct
     val structures = loader.loadTableStructure(tables)
     structures.foreach { structure =>
-      println("=" * 100)
+      println("=" * 30)
       println(s"${structure.tableSchema}.${structure.tableName}")
       structure.columns.foreach { col =>
-        println(s"${col.name} ${col.dataType} nullable:${col.nullable}")
+        println(s"""${col.name} ${col.dataType} ${if (col.nullable) "null" else "not null"}""")
       }
       println()
     }
