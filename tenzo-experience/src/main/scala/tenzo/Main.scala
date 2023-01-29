@@ -1,9 +1,6 @@
 package tenzo
 
-import tenzo.datastore.{ConfigLoader, JdbcConfig, MetadataLoader}
-
-import java.sql.DriverManager
-import java.util.Properties
+import tenzo.datastore.{ConfigLoader, MetadataLoader}
 object Main {
   import tenzo.dsl.ops._
   def main(args: Array[String]): Unit = {
