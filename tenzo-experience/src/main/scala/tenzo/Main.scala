@@ -48,6 +48,7 @@ object JDBCTest {
     structures.foreach { structure =>
       println("=" * 30)
       println(s"${structure.tableSchema}.${structure.tableName}")
+      println("=" * 30)
       structure.columns.foreach { col =>
         println(s"""${col.name} ${col.dataType} ${if (col.nullable) "null" else "not null"}""")
       }
