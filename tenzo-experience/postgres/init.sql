@@ -1,4 +1,6 @@
-create database example;
+CREATE DATABASE example;
+
+\c example
 
 create table departments (
     id integer primary key,
