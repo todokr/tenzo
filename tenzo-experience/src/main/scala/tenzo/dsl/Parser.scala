@@ -5,9 +5,11 @@ private[dsl] object Parser extends Parsing {
   import NoWhitespace._
   import FocalTable._
 
+  /** Normalize row DSL input to parse */
   def normalize(raw: String): Dsl =
     Dsl(raw.stripMargin.linesIterator.map(_.trim).filter(_.nonEmpty).mkString(Newline))
 
+  /** parse DSL to data model */
   def parse(dsl: Dsl): Seq[FocalTable] = {
     fParse(dsl.value, DslExpr(_)) match {
       case Parsed.Success(value, _) => value
