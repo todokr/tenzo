@@ -44,7 +44,6 @@ object JDBCTest {
     references.foreach(println)
 
     val from = references.find(_.fromTable == "target_users")
-    Iterator.tabulate()
     val linear = Iterator
       .iterate(from)(_.flatMap(r => references.find(_.fromTable == r.toTable)))
       .takeWhile(x => x.nonEmpty && x.exists(r => r.fromTable != r.toTable))
