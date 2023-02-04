@@ -1,15 +1,14 @@
-package tenzo
+package tenzo.dsl
 
-import fastparse.parseInputRaw
 import org.scalatest.freespec.AnyFreeSpec
-import tenzo.dsl.Main.{Parsing, ShitakuParser, SpecifiedValue}
 
 class ParsingTest extends AnyFreeSpec {
   import fastparse.parse
+  import FocalTable.SpecifiedValue.Text
   private val target = new Parsing {}
 
-  "ShitakuParser" - {
-    val target = ShitakuParser
+  "Parser" - {
+    val target = Parser
 
     "normalize" in {
       val input =
@@ -38,7 +37,6 @@ class ParsingTest extends AnyFreeSpec {
     }
 
     "parse" in {
-      import SpecifiedValue.Text
 
       val input = target.Dsl(
         """# departments
@@ -49,12 +47,12 @@ class ParsingTest extends AnyFreeSpec {
           |│ sales │ Sales Department          │
           |└───────┴───────────────────────────┘
           |# users
-          |┌──────────────┬───────────┬─────┬───────────────────┐
-          |│    alias     │ user_name │ age │  department_id    │
-          |├──────────────┼───────────┼─────┼───────────────────┤
-          |│ hr_person    │ Jinnai    │  31 │ department(hr)    │
-          |│ sales_parson │ Urita     │  27 │ department(sales) │
-          |└──────────────┴───────────┴─────┴───────────────────┘""".stripMargin
+          |┌──────────────┬───────────┬─────┬──────────────────────┐
+          |│    alias     │ user_name │ age │    department_id     │
+          |├──────────────┼───────────┼─────┼──────────────────────┤
+          |│ hr_person    │ Jinnai    │  31 │ departments -> hr    │
+          |│ sales_parson │ Urita     │  27 │ departments -> sales │
+          |└──────────────┴───────────┴─────┴──────────────────────┘""".stripMargin
       )
       val Seq(actual1, actual2) = target.parse(input)
 
@@ -85,8 +83,8 @@ class ParsingTest extends AnyFreeSpec {
       assert(col2_1_2.value === Text("Jinnai"))
       assert(col2_1_3.name === "age")
       assert(col2_1_3.value === Text("31"))
-      assert(col2_1_4.name === "department")
-      assert(col2_1_4.value === Text("department(hr)"))
+      assert(col2_1_4.name === "department_id")
+      assert(col2_1_4.value === Text("departments -> hr"))
 
       val Seq(col2_2_1, col2_2_2, col2_2_3, col2_2_4) = row2_2.columns
       assert(col2_2_1.name === "alias")
@@ -95,8 +93,8 @@ class ParsingTest extends AnyFreeSpec {
       assert(col2_2_2.value === Text("Urita"))
       assert(col2_2_3.name === "age")
       assert(col2_2_3.value === Text("27"))
-      assert(col2_2_4.name === "department")
-      assert(col2_2_4.value === Text("department(sales)"))
+      assert(col2_2_4.name === "department_id")
+      assert(col2_2_4.value === Text("departments -> sales"))
     }
 
     "UpperLine" in {
@@ -148,14 +146,14 @@ class ParsingTest extends AnyFreeSpec {
 
     "ContentLines" in {
       val input =
-        """│ hr_person    │ Jinnai    │  31 │ department(hr)    │
-          |│ sales_parson │ Urita     │  27 │ department(sales) │
+        """│ hr_person    │ Jinnai    │  31 │ departments -> hr    │
+          |│ sales_parson │ Urita     │  27 │ departments -> sales │
           |""".stripMargin
       val result = parse(input, target.ContentLines(_))
       assert(result.get.value ===
         Seq(
-          Seq("hr_person", "Jinnai", "31", "department(hr)"),
-          Seq("sales_parson", "Urita", "27", "department(sales)")
+          Seq("hr_person", "Jinnai", "31", "departments -> hr"),
+          Seq("sales_parson", "Urita", "27", "departments -> sales")
       ))
     }
   }
