@@ -22,6 +22,7 @@ object TableStructure {
   final case class Column(
     name: String,
     dataType: String,
+    isPk: Boolean,
     nullable: Boolean
   )
 }

@@ -59,7 +59,7 @@ object JDBCTest {
       println(s"${structure.tableSchema}.${structure.tableName}")
       println("=" * 30)
       structure.columns.foreach { col =>
-        println(s"""${col.name} ${col.dataType} ${if (col.nullable) "null" else "not null"}""")
+        println(s"""${if (col.isPk) "[PK] " else ""}${col.name} ${col.dataType} ${if (col.nullable) "null" else "not null"}""")
       }
       println()
     }

@@ -4,6 +4,7 @@ import java.sql.DriverManager
 import scala.util.Using
 
 class MetadataLoader(conf: JdbcConfig) {
+  import MetadataLoader._
   Class.forName(conf.driver)
 
   def loadReferences(): Seq[Reference] =
@@ -58,18 +59,18 @@ class MetadataLoader(conf: JdbcConfig) {
             rs.getString("table_schema"),
             rs.getString("table_name"),
             rs.getString("column_name"),
-            rs.getString("is_nullable"),
-            rs.getString("data_type")
+            rs.getString("data_type"),
+            rs.getBoolean("is_primary_key"),
+            rs.getBoolean("is_nullable")
           )
         }
         .toSeq
 
       records
-        .groupBy { case (schema, table, _, _, _) => (schema, table) }
+        .groupBy { case (schema, table, _, _, _, _) => (schema, table) }
         .map { case ((schema, table), cols) =>
-          val columns = cols.map { case (_, _, name, isNull, tpe) =>
-            val nullable = isNull == "YES"
-            TableStructure.Column(name, tpe, nullable)
+          val columns = cols.map { case (_, _, name, tpe, isPk, nullable) =>
+            TableStructure.Column(name, tpe, isPk, nullable)
           }
           TableStructure(schema, table, columns)
         }
@@ -79,15 +80,33 @@ class MetadataLoader(conf: JdbcConfig) {
   object TableStructureSql {
     def stmt(tables: Seq[String]): String = {
       val placeholder = tables.map(_ => "?").mkString(",")
-      s"""select
-         |    c.table_schema,
-         |    c.table_name,
-         |    c.column_name,
-         |    c.is_nullable,
-         |    c.data_type
+      s"""select c.table_schema,
+         |       c.table_name,
+         |       c.column_name,
+         |       c.data_type,
+         |       pk is not null as is_primary_key,
+         |       c.is_nullable = 'YES' as is_nullable
          |from information_schema.columns as c
+         |         left join (select cc.table_schema,
+         |                           cc.table_name,
+         |                           cc.column_name,
+         |                           cc.constraint_name,
+         |                           tc.constraint_type
+         |                    from information_schema.constraint_column_usage as cc
+         |                             inner join information_schema.table_constraints as tc
+         |                                        on cc.table_name = tc.table_name and
+         |                                           cc.constraint_name = tc.constraint_name and
+         |                                           cc.table_schema <> '$SystemSchema' and
+         |                                           tc.constraint_type = 'PRIMARY KEY') as pk
+         |                   on c.table_schema = pk.table_schema and
+         |                      c.table_name = pk.table_name and
+         |                      c.column_name = pk.column_name
          |where c.table_name in ($placeholder)
          |order by c.table_name, c.ordinal_position""".stripMargin
     }
   }
+}
+
+object MetadataLoader {
+  private val SystemSchema = "pg_catalog"
 }
