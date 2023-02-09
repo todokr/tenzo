@@ -7,24 +7,26 @@ class MetadataLoader(conf: JdbcConfig) {
   import MetadataLoader._
   Class.forName(conf.driver)
 
-  def loadReferences(): Seq[Reference] =
+  def loadReferences(): References =
     Using.resource(DriverManager.getConnection(conf.url, conf.user, conf.password)) { conn =>
       val stmt = conn.prepareStatement(ReferenceSql.stmt)
       val rs   = stmt.executeQuery()
-      Iterator
-        .continually(rs)
-        .takeWhile(_.next())
-        .map { rs =>
-          Reference(
-            rs.getString("table_schema"),
-            rs.getString("constraint_name"),
-            rs.getString("from_table"),
-            rs.getString("from_column"),
-            rs.getString("to_table"),
-            rs.getString("to_column"),
-          )
-        }
-        .toSeq
+      val refs =
+        Iterator
+          .continually(rs)
+          .takeWhile(_.next())
+          .map { rs =>
+            Reference(
+              rs.getString("table_schema"),
+              rs.getString("constraint_name"),
+              rs.getString("from_table"),
+              rs.getString("from_column"),
+              rs.getString("to_table"),
+              rs.getString("to_column")
+            )
+          }
+          .toSeq
+      new References(refs)
     }
 
   object ReferenceSql {
@@ -44,10 +46,10 @@ class MetadataLoader(conf: JdbcConfig) {
         |""".stripMargin
   }
 
-  def loadTableStructure(tables: Seq[String]): Seq[TableStructure] =
+  def loadTables(tableNames: Seq[String]): Tables =
     Using.resource(DriverManager.getConnection(conf.url, conf.user, conf.password)) { conn =>
-      val stmt = conn.prepareStatement(TableStructureSql.stmt(tables))
-      tables.zipWithIndex.foreach { case (tbl, idx) =>
+      val stmt = conn.prepareStatement(TableStructureSql.stmt(tableNames))
+      tableNames.zipWithIndex.foreach { case (tbl, idx) =>
         stmt.setString(idx + 1, tbl)
       }
       val rs = stmt.executeQuery()
@@ -66,20 +68,23 @@ class MetadataLoader(conf: JdbcConfig) {
         }
         .toSeq
 
-      records
-        .groupBy { case (schema, table, _, _, _, _) => (schema, table) }
-        .map { case ((schema, table), cols) =>
-          val columns = cols.map { case (_, _, name, tpe, isPk, nullable) =>
-            TableStructure.Column(name, tpe, isPk, nullable)
+      val tables =
+        records
+          .groupBy { case (schema, table, _, _, _, _) => (schema, table) }
+          .map { case ((schema, table), cols) =>
+            val columns = cols.map { case (_, _, name, tpe, isPk, nullable) =>
+              Table.Column(name, tpe, isPk, nullable)
+            }
+            Table(schema, table, columns)
           }
-          TableStructure(schema, table, columns)
-        }
-        .toSeq
+          .toSeq
+
+      new Tables(tables)
     }
 
   object TableStructureSql {
-    def stmt(tables: Seq[String]): String = {
-      val placeholder = tables.map(_ => "?").mkString(",")
+    def stmt(tableNames: Seq[String]): String = {
+      val placeholder = tableNames.map(_ => "?").mkString(",")
       s"""select c.table_schema,
          |       c.table_name,
          |       c.column_name,
