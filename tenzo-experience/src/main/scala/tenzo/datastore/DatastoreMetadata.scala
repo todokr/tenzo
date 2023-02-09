@@ -1,5 +1,18 @@
 package tenzo.datastore
 
+class References(refs: Seq[Reference]) {
+  def dependencies(from: String): Seq[String] = {
+    val fromRef = refs.find(_.fromTable == from)
+    val linear =
+      Iterator
+        .iterate(fromRef)(_.flatMap(r => refs.find(_.fromTable == r.toTable)))
+        .takeWhile(x => x.nonEmpty && x.exists(r => r.fromTable != r.toTable))
+        .collect { case Some(x) => x }
+        .toSeq
+    linear.head.fromTable +: linear.map(_.toTable)
+  }
+}
+
 final case class Reference(
   tableSchema: String,
   constraintName: String,
@@ -12,13 +25,27 @@ final case class Reference(
     s"""[$tableSchema] $toTable.$toColumn <-- $fromTable.$fromColumn ($constraintName)"""
 }
 
-final case class TableStructure(
+class Tables(tbls: Seq[Table]) {
+  override def toString: String =
+    tbls.map { t =>
+      val cols = t.columns.map { col =>
+        s"""${if (col.isPk) "[PK] " else ""}${col.name} ${col.dataType} ${if (col.nullable) "null" else "not null"}"""
+      }.mkString("\n")
+      s"""${"=" * 30}
+         |${t.tableSchema}.${t.tableName}
+         |${"=" * 30}
+         |$cols
+         |""".stripMargin
+    }.mkString("\n")
+}
+
+final case class Table(
   tableSchema: String,
   tableName: String,
-  columns: Seq[TableStructure.Column]
+  columns: Seq[Table.Column]
 )
 
-object TableStructure {
+object Table {
   final case class Column(
     name: String,
     dataType: String,
