@@ -29,7 +29,7 @@ private[dsl] object Parser extends Parsing {
         FocalTable(tableName, rows)
     }
 
-  def TableName[_: P]: P[String]              = P(WSs ~ "#" ~ WSs ~ Term.! ~ Newline)
+  def TableName[_: P]: P[String]              = P("#" ~ WSs ~ Term.! ~ Newline)
   def HeaderLine[_: P]: P[Seq[String]]        = P(("│" ~ WSs ~ Term.!).rep(1) ~ "│" ~ Newline).map(_.map(_.trim))
   def ContentLines[_: P]: P[Seq[Seq[String]]] = P(ContentLine.rep(1))
   def ContentLine[_: P]: P[Seq[String]]       = P(("│" ~ WSs ~ Term.!).rep(1) ~ "│" ~ Newline).map(_.map(_.trim))
