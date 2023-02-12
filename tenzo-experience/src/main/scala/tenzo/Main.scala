@@ -1,6 +1,6 @@
 package tenzo
 
-import tenzo.datastore.{ConfigLoader, MetadataLoader}
+import tenzo.datastore.{ConfigLoader, MetadataLoader, References, Tables}
 object Main {
   import tenzo.dsl.ops._
   def main(args: Array[String]): Unit = {
@@ -44,8 +44,27 @@ object JDBCTest {
     val deps = references.dependencies("target_users")
     println(deps)
 
-    val tables = loader.loadTables(deps.distinct)
+    val tables = loader.loadTables()
 
-    println(tables.toString)
+    println(tables.size)
+
+    // println(tables.toString)
+  }
+}
+
+class Shitaku private (tables: Tables, refs: References) {
+  override def toString: String = {
+    refs.toString + "\n" + tables.toString
+  }
+}
+
+object Shitaku {
+
+  def init(): Shitaku = {
+    val conf = ConfigLoader.load()
+    val loader = new MetadataLoader(conf)
+    val tables = loader.loadTables()
+    val references = loader.loadReferences()
+    new Shitaku(tables, references)
   }
 }

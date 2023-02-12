@@ -26,6 +26,8 @@ final case class Reference(
 }
 
 class Tables(tbls: Seq[Table]) {
+  def size: Int = tbls.size
+
   override def toString: String =
     tbls.map { t =>
       val cols = t.columns.map { col =>

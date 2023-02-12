@@ -46,12 +46,11 @@ class MetadataLoader(conf: JdbcConfig) {
         |""".stripMargin
   }
 
-  def loadTables(tableNames: Seq[String]): Tables =
+  def loadTables(): Tables =
     Using.resource(DriverManager.getConnection(conf.url, conf.user, conf.password)) { conn =>
-      val stmt = conn.prepareStatement(TableStructureSql.stmt(tableNames))
-      tableNames.zipWithIndex.foreach { case (tbl, idx) =>
-        stmt.setString(idx + 1, tbl)
-      }
+      val stmt = conn.prepareStatement(TableStructureSql.stmt)
+      val paramCount = TableStructureSql.stmt.count(_ == '?')
+      (1 to paramCount).foreach(i => stmt.setString(i, conf.schema))
       val rs = stmt.executeQuery()
       val records = Iterator
         .continually(rs)
@@ -83,8 +82,7 @@ class MetadataLoader(conf: JdbcConfig) {
     }
 
   object TableStructureSql {
-    def stmt(tableNames: Seq[String]): String = {
-      val placeholder = tableNames.map(_ => "?").mkString(",")
+    val stmt: String = {
       s"""select c.table_schema,
          |       c.table_name,
          |       c.column_name,
@@ -99,14 +97,14 @@ class MetadataLoader(conf: JdbcConfig) {
          |                           tc.constraint_type
          |                    from information_schema.constraint_column_usage as cc
          |                             inner join information_schema.table_constraints as tc
-         |                                        on cc.table_name = tc.table_name and
-         |                                           cc.constraint_name = tc.constraint_name and
-         |                                           cc.table_schema <> '$SystemSchema' and
-         |                                           tc.constraint_type = 'PRIMARY KEY') as pk
+         |                                        on tc.constraint_type = 'PRIMARY KEY' and
+         |                                           tc.table_schema = ? and
+         |                                           cc.table_name = tc.table_name and
+         |                                           cc.constraint_name = tc.constraint_name) as pk
          |                   on c.table_schema = pk.table_schema and
          |                      c.table_name = pk.table_name and
          |                      c.column_name = pk.column_name
-         |where c.table_name in ($placeholder)
+         |where c.table_schema = ?
          |order by c.table_name, c.ordinal_position""".stripMargin
     }
   }
