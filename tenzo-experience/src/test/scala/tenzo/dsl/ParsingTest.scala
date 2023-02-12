@@ -122,7 +122,7 @@ class ParsingTest extends AnyFreeSpec {
 
     "TableName" in {
       val input =
-        """ # the table name
+        """# the table name
           |""".stripMargin
       val result = parse(input, target.TableName(_))
       assert(result.get.value === "the table name")
