@@ -8,7 +8,7 @@ class ParsingTest extends AnyFreeSpec {
   private val target = new Parsing {}
 
   "Parser" - {
-    val target = Parser
+    val target = DslParser
 
     "normalize" in {
       val input =

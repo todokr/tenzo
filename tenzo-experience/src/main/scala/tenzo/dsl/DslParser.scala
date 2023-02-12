@@ -1,6 +1,6 @@
 package tenzo.dsl
 
-private[dsl] object Parser extends Parsing {
+object DslParser extends Parsing {
   import fastparse.{parse => fParse, _}
   import NoWhitespace._
   import FocalTable._
@@ -44,6 +44,3 @@ private[dsl] object Parser extends Parsing {
     override def toString: String = value
   }
 }
-
-
-

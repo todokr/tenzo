@@ -4,7 +4,6 @@ import java.sql.DriverManager
 import scala.util.Using
 
 class MetadataLoader(conf: JdbcConfig) {
-  import MetadataLoader._
   Class.forName(conf.driver)
 
   def loadReferences(): References =
@@ -108,8 +107,4 @@ class MetadataLoader(conf: JdbcConfig) {
          |order by c.table_name, c.ordinal_position""".stripMargin
     }
   }
-}
-
-object MetadataLoader {
-  private val SystemSchema = "pg_catalog"
 }
